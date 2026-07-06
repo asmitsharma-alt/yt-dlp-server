@@ -74,7 +74,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
   try {
     const { stdout } = await execFileAsync(
       'yt-dlp',
-      ['-j', '--no-playlist', url],
+      ['-j', '--no-playlist', '--extractor-args', 'youtube:player_client=android', url],
       { timeout: 30_000 },
     );
 
@@ -173,6 +173,7 @@ export function spawnDownload(
 
     const proc = spawn('yt-dlp', [
       '-f', formatId,
+      '--extractor-args', 'youtube:player_client=android',
       '--extract-audio',
       '--audio-format', 'mp3',
       '-o', tempFilePath,
@@ -186,6 +187,7 @@ export function spawnDownload(
   // Video: pipe directly to stdout
   const proc = spawn('yt-dlp', [
     '-f', formatId,
+    '--extractor-args', 'youtube:player_client=android',
     '-o', '-',
     '--no-playlist',
     url,
