@@ -12,21 +12,17 @@ router.get('/', infoLimiter, validateUrl, async (req: Request, res: Response) =>
     const info = await getVideoInfo(url);
     res.json(info);
   } catch (err: unknown) {
-    const error = err as Error;
+    const error = err as Error & { isClientError?: boolean; raw?: string };
     const message = error.message || 'Failed to fetch video info.';
+    const isClientError = error.isClientError === true;
 
-    // yt-dlp wrapper throws descriptive errors for known issues (private,
-    // age-restricted, etc.) — surface those as 400s so the client can
-    // distinguish user-fixable problems from server errors.
-    const isClientError =
-      message.includes('private') ||
-      message.includes('age-restricted') ||
-      message.includes('unavailable') ||
-      message.includes('copyright') ||
-      message.includes('Live streams') ||
-      message.includes('check the URL');
+    const body: Record<string, string> = { error: message };
+    // Include raw yt-dlp stderr in response for debugging
+    if (error.raw) {
+      body.detail = error.raw;
+    }
 
-    res.status(isClientError ? 400 : 500).json({ error: message });
+    res.status(isClientError ? 400 : 500).json(body);
   }
 });
 

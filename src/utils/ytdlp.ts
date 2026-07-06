@@ -40,30 +40,35 @@ export interface DownloadResult {
 
 /**
  * Maps common yt-dlp stderr messages to user-friendly error descriptions.
+ * Returns { message, isClientError, raw } so callers can set HTTP status.
  */
-function parseStderrError(stderr: string): string {
+function parseStderrError(stderr: string): { message: string; isClientError: boolean; raw: string } {
   const lower = stderr.toLowerCase();
 
   if (lower.includes('private video')) {
-    return 'This video is private and cannot be accessed.';
+    return { message: 'This video is private and cannot be accessed.', isClientError: true, raw: stderr };
   }
   if (lower.includes('sign in to confirm your age') || lower.includes('age-restricted')) {
-    return 'This video is age-restricted and cannot be downloaded.';
+    return { message: 'This video is age-restricted and cannot be downloaded.', isClientError: true, raw: stderr };
   }
   if (lower.includes('video unavailable') || lower.includes('is not available')) {
-    return 'This video is unavailable. It may have been removed or region-locked.';
+    return { message: 'This video is unavailable. It may have been removed or region-locked.', isClientError: true, raw: stderr };
   }
   if (lower.includes('copyright')) {
-    return 'This video is unavailable due to a copyright claim.';
+    return { message: 'This video is unavailable due to a copyright claim.', isClientError: true, raw: stderr };
   }
   if (lower.includes('live event')) {
-    return 'Live streams cannot be downloaded while they are in progress.';
+    return { message: 'Live streams cannot be downloaded while they are in progress.', isClientError: true, raw: stderr };
   }
   if (lower.includes('urlopen error') || lower.includes('unable to download webpage')) {
-    return 'Unable to reach YouTube. Please check your network connection.';
+    return { message: 'Unable to reach YouTube. Please check your network connection.', isClientError: false, raw: stderr };
   }
 
-  return 'Failed to retrieve video information. Please check the URL and try again.';
+  return {
+    message: 'Failed to retrieve video information. Please try again later.',
+    isClientError: false,
+    raw: stderr,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +151,11 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
 
     if (error.stderr) {
       console.error('[yt-dlp stderr]', error.stderr);
-      throw new Error(parseStderrError(error.stderr));
+      const parsed = parseStderrError(error.stderr);
+      const wrapped = new Error(parsed.message) as Error & { isClientError: boolean; raw: string };
+      wrapped.isClientError = parsed.isClientError;
+      wrapped.raw = parsed.raw;
+      throw wrapped;
     }
 
     console.error('[yt-dlp error]', error.message);
