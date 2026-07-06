@@ -1,3 +1,16 @@
+# ---- Build stage ----
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npx tsc
+
+# ---- Production stage ----
 FROM node:20-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,9 +28,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY tsconfig.json ./
-COPY src ./src
-RUN npx tsc
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
 
