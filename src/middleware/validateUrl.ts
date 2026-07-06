@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 
 const YOUTUBE_URL_REGEX =
-  /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)[a-zA-Z0-9_-]+/;
+  /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/|embed\/|v\/)|youtu\.be\/)[a-zA-Z0-9_-]+/;
 
 export function validateUrl(req: Request, res: Response, next: NextFunction): void {
   const { url } = req.query;
