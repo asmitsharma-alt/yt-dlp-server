@@ -74,8 +74,8 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
   try {
     const { stdout } = await execFileAsync(
       'yt-dlp',
-      ['-j', '--no-playlist', '--extractor-args', 'youtube:player_client=android', url],
-      { timeout: 30_000 },
+      ['-j', '--no-playlist', url],
+      { timeout: 60_000 },
     );
 
     const data = JSON.parse(stdout);
@@ -145,9 +145,11 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
     const error = err as { stderr?: string; message?: string };
 
     if (error.stderr) {
+      console.error('[yt-dlp stderr]', error.stderr);
       throw new Error(parseStderrError(error.stderr));
     }
 
+    console.error('[yt-dlp error]', error.message);
     throw new Error(
       error.message || 'An unexpected error occurred while fetching video info.',
     );
@@ -173,7 +175,6 @@ export function spawnDownload(
 
     const proc = spawn('yt-dlp', [
       '-f', formatId,
-      '--extractor-args', 'youtube:player_client=android',
       '--extract-audio',
       '--audio-format', 'mp3',
       '-o', tempFilePath,
@@ -187,7 +188,6 @@ export function spawnDownload(
   // Video: pipe directly to stdout
   const proc = spawn('yt-dlp', [
     '-f', formatId,
-    '--extractor-args', 'youtube:player_client=android',
     '-o', '-',
     '--no-playlist',
     url,
